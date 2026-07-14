@@ -220,6 +220,13 @@ export async function publishProject(
   const absolutePath = path.resolve(folderPath);
   const git = simpleGit(absolutePath);
 
+  // Auto-commit any local changes before pushing (including README edits)
+  const status = await git.status();
+  if (status.files.length > 0) {
+    await git.add('.');
+    await git.commit('Dev Dropbox: Pre-publish save\n\nSynced using dev-dropbox\nCo-authored-by: Dev Dropbox <support@devdropbox.org>');
+  }
+
   const remotes = await git.getRemotes();
   const hasOrigin = remotes.some(r => r.name === 'origin');
 

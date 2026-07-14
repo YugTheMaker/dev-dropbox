@@ -30,11 +30,12 @@ interface SyncContextType {
   synchronizeProject: (folderPath: string) => Promise<void>;
   initializeProject: (folderPath: string) => Promise<Project>;
   resolveConflict: (folderPath: string, fileName: string, strategy: 'ours' | 'theirs') => Promise<void>;
-  publishProject: (folderPath: string, repoName: string, isPrivate: boolean) => Promise<void>;
+  publishProject: (folderPath: string, repoName: string, isPrivate: boolean, readmeNote?: string) => Promise<void>;
   validateFolder: (folderPath: string) => Promise<any>;
   authenticateGitHub: (token: string) => Promise<any>;
   logoutGitHub: () => Promise<void>;
   refreshProjects: () => Promise<void>;
+  getFileDiff: (folderPath: string, fileName: string) => Promise<{ original: string; modified: string }>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -252,7 +253,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Publish local project to GitHub
-  const publishProject = async (folderPath: string, repoName: string, isPrivate: boolean) => {
+  const publishProject = async (folderPath: string, repoName: string, isPrivate: boolean, readmeNote?: string) => {
     // Set to syncing while publishing
     setProjects((prev) => 
       prev.map((p) => p.path === folderPath ? { ...p, status: 'syncing' } : p)
@@ -261,7 +262,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await fetch(`${DAEMON_URL}/api/projects/publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folderPath, repoName, isPrivate })
+      body: JSON.stringify({ folderPath, repoName, isPrivate, readmeNote })
     });
 
     if (!res.ok) {
@@ -304,6 +305,19 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getFileDiff = async (folderPath: string, fileName: string) => {
+    const res = await fetch(`${DAEMON_URL}/api/projects/diff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderPath, fileName })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch file diff');
+    }
+    return await res.json();
+  };
+
   return (
     <SyncContext.Provider value={{
       projects,
@@ -320,7 +334,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       validateFolder,
       authenticateGitHub,
       logoutGitHub,
-      refreshProjects
+      refreshProjects,
+      getFileDiff
     }}>
       {children}
     </SyncContext.Provider>

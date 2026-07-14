@@ -4,6 +4,7 @@ import { SetupWizard } from './components/SetupWizard';
 import { ProjectCard } from './components/ProjectCard';
 import { AddProjectModal } from './components/AddProjectModal';
 import { ConflictResolver } from './components/ConflictResolver';
+import { DiffReviewModal } from './components/DiffReviewModal';
 import { 
   Cloud, 
   Plus, 
@@ -26,6 +27,7 @@ const Dashboard: React.FC = () => {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [conflictedProject, setConflictedProject] = useState<Project | null>(null);
+  const [diffProject, setDiffProject] = useState<Project | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
 
   // Sync all projects
@@ -156,6 +158,7 @@ const Dashboard: React.FC = () => {
                 key={project.id} 
                 project={project} 
                 onOpenConflict={setConflictedProject}
+                onOpenDiff={setDiffProject}
               />
             ))}
           </div>
@@ -171,6 +174,13 @@ const Dashboard: React.FC = () => {
         <ConflictResolver 
           project={conflictedProject} 
           onClose={() => setConflictedProject(null)} 
+        />
+      )}
+
+      {diffProject && (
+        <DiffReviewModal 
+          project={diffProject} 
+          onClose={() => setDiffProject(null)} 
         />
       )}
 

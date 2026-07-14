@@ -282,12 +282,27 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
 
   // 11. Publish to Cloud
   app.post('/api/projects/publish', async (req, res) => {
-    const { folderPath, repoName, isPrivate } = req.body;
+    const { folderPath, repoName, isPrivate, readmeNote } = req.body;
     if (!folderPath || !repoName) {
       return res.status(400).json({ error: 'Folder path and repo name are required' });
     }
 
     try {
+      // Write custom maker description to README.md if provided
+      if (readmeNote && readmeNote.trim()) {
+        const path = require('path');
+        const fs = require('fs');
+        const readmePath = path.join(folderPath, 'README.md');
+        let currentContent = '';
+        if (fs.existsSync(readmePath)) {
+          currentContent = fs.readFileSync(readmePath, 'utf8');
+        } else {
+          currentContent = `# ${repoName}\nCreated with Dev Dropbox.`;
+        }
+        const updatedContent = `${currentContent}\n\n## About the Maker\n${readmeNote.trim()}\n`;
+        fs.writeFileSync(readmePath, updatedContent, 'utf8');
+      }
+
       // 1. Create remote repo on GitHub
       const { html_url } = await githubHost.createRepo(repoName, !!isPrivate);
       
@@ -298,6 +313,53 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
       res.json({ success: true, status });
     } catch (e: any) {
       res.status(500).json({ error: e.message || 'Failed to publish project to GitHub.' });
+    }
+  });
+
+  // 12. Get File Diff
+  app.post('/api/projects/diff', async (req, res) => {
+    const { folderPath, fileName } = req.body;
+    if (!folderPath || !fileName) {
+      return res.status(400).json({ error: 'Folder path and file name are required' });
+    }
+
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const simpleGit = require('simple-git');
+      
+      const absolutePath = path.resolve(folderPath);
+      const git = simpleGit(absolutePath);
+      
+      // Ensure it's a relative path for Git
+      const relativePath = path.relative(absolutePath, path.resolve(absolutePath, fileName));
+      
+      let originalContent = '';
+      let modifiedContent = '';
+
+      // 1. Get original content from HEAD
+      try {
+        originalContent = await git.show([`HEAD:${relativePath}`]);
+      } catch {
+        // File is probably untracked/newly created, so original is empty
+      }
+
+      // 2. Get modified content from disk
+      const diskPath = path.join(absolutePath, relativePath);
+      if (fs.existsSync(diskPath)) {
+        try {
+          modifiedContent = fs.readFileSync(diskPath, 'utf8');
+        } catch {
+          // File might be deleted
+        }
+      }
+
+      res.json({
+        original: originalContent,
+        modified: modifiedContent
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Failed to get file diff' });
     }
   });
 

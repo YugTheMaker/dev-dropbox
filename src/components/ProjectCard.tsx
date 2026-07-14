@@ -15,9 +15,10 @@ import {
 interface ProjectCardProps {
   project: Project;
   onOpenConflict: (project: Project) => void;
+  onOpenDiff: (project: Project) => void;
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflict }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflict, onOpenDiff }) => {
   const { synchronizeProject, initializeProject, removeProject, publishProject, isAuthenticated } = useSync();
   const [syncing, setSyncing] = useState(false);
   const [initializing, setInitializing] = useState(false);
@@ -26,6 +27,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
   const [repoName, setRepoName] = useState(project.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-'));
   const [isPrivate, setIsPrivate] = useState(true);
   const [publishError, setPublishError] = useState('');
+  const [readmeNote, setReadmeNote] = useState('');
+
+  const handleOpenRepo = async (remoteUrl: string) => {
+    let browserUrl = remoteUrl;
+    if (browserUrl.endsWith('.git')) {
+      browserUrl = browserUrl.slice(0, -4);
+    }
+    if (browserUrl.startsWith('git@github.com:')) {
+      browserUrl = browserUrl.replace('git@github.com:', 'https://github.com/');
+    }
+    try {
+      await fetch('http://127.0.0.1:36911/api/open-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: browserUrl })
+      });
+    } catch (e) {
+      console.error('Failed to open repository link:', e);
+    }
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -62,8 +83,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
     setPublishing(true);
     setPublishError('');
     try {
-      await publishProject(project.path, repoName.trim(), isPrivate);
+      await publishProject(project.path, repoName.trim(), isPrivate, readmeNote.trim());
       setShowPublishInput(false);
+      setReadmeNote('');
     } catch (err: any) {
       setPublishError(err.message || 'Failed to publish to GitHub.');
     } finally {
@@ -153,10 +175,18 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
 
         {/* Cloud details */}
         {project.remoteUrl && (
-          <p className="text-[10px] text-dark-500 mt-1 truncate flex items-center gap-1">
-            <GitBranch className="w-3 h-3 text-dark-500" />
-            <span>Linked to: {project.remoteUrl}</span>
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[10px] text-dark-500 truncate flex items-center gap-1 max-w-[70%]" title={project.remoteUrl}>
+              <GitBranch className="w-3 h-3 text-dark-500 shrink-0" />
+              <span className="truncate">Linked to: {project.remoteUrl}</span>
+            </p>
+            <button
+              onClick={() => handleOpenRepo(project.remoteUrl!)}
+              className="text-[10px] text-brand-400 hover:text-brand-300 font-semibold hover:underline flex items-center gap-0.5 shrink-0"
+            >
+              View in Browser
+            </button>
+          </div>
         )}
 
         {/* Recent file edits list */}
@@ -185,6 +215,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
                 value={repoName}
                 onChange={(e) => setRepoName(e.target.value)}
                 className="w-full bg-dark-900 border border-dark-800 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 text-white"
+              />
+              <textarea 
+                placeholder="About this Project (added to README)..."
+                value={readmeNote}
+                onChange={(e) => setReadmeNote(e.target.value)}
+                rows={2}
+                className="w-full bg-dark-900 border border-dark-800 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 text-white placeholder-dark-600 resize-none"
               />
               <label className="flex items-center gap-1.5 text-[10px] text-dark-400 mt-1 cursor-pointer">
                 <input 
@@ -270,6 +307,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
             >
               <AlertCircle className="w-3.5 h-3.5" />
               Resolve Issues
+            </button>
+          )}
+
+          {/* Review changes button */}
+          {project.status === 'changes-waiting' && !isSyncStatus && (
+            <button
+              type="button"
+              onClick={() => onOpenDiff(project)}
+              className="bg-dark-800 hover:bg-dark-700 text-dark-300 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1 shrink-0"
+            >
+              Review
             </button>
           )}
 
