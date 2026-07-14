@@ -427,6 +427,44 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
     }
   });
 
+  // Open project in IDE (VSCode or Antigravity)
+  app.post('/api/projects/open-ide', (req, res) => {
+    const { folderPath, ide } = req.body;
+    if (!folderPath || !ide) {
+      return res.status(400).json({ error: 'Folder path and IDE are required' });
+    }
+
+    try {
+      const escapedPath = folderPath.replace(/"/g, '\\"');
+      let command = '';
+      if (ide === 'vscode') {
+        if (platform() === 'darwin') {
+          command = `open -a "Visual Studio Code" "${escapedPath}"`;
+        } else {
+          command = `code "${escapedPath}"`;
+        }
+      } else if (ide === 'antigravity') {
+        if (platform() === 'darwin') {
+          command = `open -a "Antigravity IDE" "${escapedPath}" || open -a "Antigravity" "${escapedPath}"`;
+        } else {
+          return res.status(400).json({ error: 'Antigravity is only supported on macOS.' });
+        }
+      } else {
+        return res.status(400).json({ error: 'Unsupported IDE' });
+      }
+
+      exec(command, (err) => {
+        if (err) {
+          console.error(`Failed to launch IDE: ${err.message}`);
+          return res.status(500).json({ error: `Failed to open project in ${ide}` });
+        }
+        res.json({ success: true });
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Failed to open project' });
+    }
+  });
+
   return { server, app };
 }
 

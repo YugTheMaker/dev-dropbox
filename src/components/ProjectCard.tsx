@@ -19,7 +19,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflict, onOpenDiff }) => {
-  const { synchronizeProject, initializeProject, removeProject, publishProject, isAuthenticated } = useSync();
+  const { synchronizeProject, initializeProject, removeProject, publishProject, isAuthenticated, openProjectInIde } = useSync();
   const [syncing, setSyncing] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -28,6 +28,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
   const [isPrivate, setIsPrivate] = useState(true);
   const [publishError, setPublishError] = useState('');
   const [readmeNote, setReadmeNote] = useState('');
+
+  const handleOpenIde = async (ide: 'vscode' | 'antigravity') => {
+    try {
+      await openProjectInIde(project.path, ide);
+    } catch (e: any) {
+      alert(`Failed to launch IDE: ${e.message || e}`);
+    }
+  };
 
   const handleOpenRepo = async (remoteUrl: string) => {
     let browserUrl = remoteUrl;
@@ -259,14 +267,32 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onOpenConflic
       {/* CARD BOTTOM ACTIONS */}
       <div className="mt-6 flex justify-between items-center gap-2 border-t border-dark-800/40 pt-4 shrink-0">
         
-        {/* Left Side: Remove action */}
-        <button 
-          onClick={handleRemove}
-          title="Stop tracking this folder"
-          className="text-dark-500 hover:text-red-400 p-2 hover:bg-dark-900 rounded-xl transition shrink-0"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {/* Left Side: Remove and Open Actions */}
+        <div className="flex gap-1.5 items-center shrink-0">
+          <button 
+            onClick={handleRemove}
+            title="Stop tracking this folder"
+            className="text-dark-500 hover:text-red-400 p-2 hover:bg-dark-900 rounded-xl transition shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => handleOpenIde('vscode')}
+            title="Open in Visual Studio Code"
+            className="text-[10px] font-bold text-dark-400 hover:text-white px-2 py-1 hover:bg-dark-900 rounded-lg transition border border-dark-800/40 hover:border-dark-700/60"
+          >
+            VSCode
+          </button>
+
+          <button
+            onClick={() => handleOpenIde('antigravity')}
+            title="Open in Antigravity IDE"
+            className="text-[10px] font-bold text-dark-400 hover:text-white px-2 py-1 hover:bg-dark-900 rounded-lg transition border border-dark-800/40 hover:border-dark-700/60"
+          >
+            Antigravity
+          </button>
+        </div>
 
         {/* Right Side: Major Sync actions */}
         <div className="flex gap-2 items-center flex-1 justify-end">

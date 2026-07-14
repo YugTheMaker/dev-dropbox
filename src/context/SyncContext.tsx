@@ -38,6 +38,7 @@ interface SyncContextType {
   getFileDiff: (folderPath: string, fileName: string) => Promise<{ original: string; modified: string }>;
   getCloudRepos: () => Promise<{ name: string; clone_url: string; private: boolean }[]>;
   cloneCloudRepo: (cloneUrl: string, repoName: string) => Promise<void>;
+  openProjectInIde: (folderPath: string, ide: 'vscode' | 'antigravity') => Promise<void>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -342,6 +343,18 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshProjects();
   };
 
+  const openProjectInIde = async (folderPath: string, ide: 'vscode' | 'antigravity') => {
+    const res = await fetch(`${DAEMON_URL}/api/projects/open-ide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderPath, ide })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to open project in IDE');
+    }
+  };
+
   return (
     <SyncContext.Provider value={{
       projects,
@@ -361,7 +374,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshProjects,
       getFileDiff,
       getCloudRepos,
-      cloneCloudRepo
+      cloneCloudRepo,
+      openProjectInIde
     }}>
       {children}
     </SyncContext.Provider>
