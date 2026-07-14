@@ -37,4 +37,5 @@ export interface CloudHost {
   getCurrentUser(): Promise<{ username: string; avatarUrl?: string }>;
   getRepoInfo(owner: string, repo: string): Promise<{ id: number; html_url: string; private: boolean }>;
   createRepo(name: string, isPrivate: boolean): Promise<{ html_url: string }>;
+  listRepos?(): Promise<{ name: string; clone_url: string; private: boolean }[]>;
 }

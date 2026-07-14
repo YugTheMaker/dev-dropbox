@@ -36,6 +36,8 @@ interface SyncContextType {
   logoutGitHub: () => Promise<void>;
   refreshProjects: () => Promise<void>;
   getFileDiff: (folderPath: string, fileName: string) => Promise<{ original: string; modified: string }>;
+  getCloudRepos: () => Promise<{ name: string; clone_url: string; private: boolean }[]>;
+  cloneCloudRepo: (cloneUrl: string, repoName: string) => Promise<void>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -318,6 +320,28 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await res.json();
   };
 
+  const getCloudRepos = async () => {
+    const res = await fetch(`${DAEMON_URL}/api/github/repos`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch cloud repositories');
+    }
+    return await res.json();
+  };
+
+  const cloneCloudRepo = async (cloneUrl: string, repoName: string) => {
+    const res = await fetch(`${DAEMON_URL}/api/projects/clone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cloneUrl, repoName })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to clone cloud repository');
+    }
+    await refreshProjects();
+  };
+
   return (
     <SyncContext.Provider value={{
       projects,
@@ -335,7 +359,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authenticateGitHub,
       logoutGitHub,
       refreshProjects,
-      getFileDiff
+      getFileDiff,
+      getCloudRepos,
+      cloneCloudRepo
     }}>
       {children}
     </SyncContext.Provider>

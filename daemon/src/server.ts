@@ -3,7 +3,9 @@ import { createServer, Server as HTTPServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import { exec } from 'child_process';
-import { platform } from 'os';
+import { platform, homedir } from 'os';
+import fs from 'fs';
+import path from 'path';
 import { 
   validateProjectFolder, 
   writeSuggestedGitignore,
@@ -23,6 +25,13 @@ const githubHost = new GitHubHost();
 const folderWatcher = new FolderWatcher();
 let wsServer: WebSocketServer;
 const clients = new Set<WebSocket>();
+
+// Create default DevDropbox folder on startup
+const defaultSyncDir = path.join(homedir(), 'DevDropbox');
+if (!fs.existsSync(defaultSyncDir)) {
+  fs.mkdirSync(defaultSyncDir, { recursive: true });
+  console.log(`Created default DevDropbox folder at: ${defaultSyncDir}`);
+}
 
 // Auto-authenticate with GitHub on startup if we have a token saved
 if (appConfig.githubToken) {
@@ -360,6 +369,61 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
       });
     } catch (e: any) {
       res.status(500).json({ error: e.message || 'Failed to get file diff' });
+    }
+  });
+
+  // Get all repositories for the authenticated GitHub user
+  app.get('/api/github/repos', async (req, res) => {
+    if (!githubHost.isAuthenticated()) {
+      return res.status(401).json({ error: 'GitHub is not authenticated.' });
+    }
+    try {
+      if (githubHost.listRepos) {
+        const repos = await githubHost.listRepos();
+        res.json(repos);
+      } else {
+        res.status(501).json({ error: 'List repositories method not implemented.' });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Failed to list GitHub repositories.' });
+    }
+  });
+
+  // Clone a remote repository to default local folder and track it
+  app.post('/api/projects/clone', async (req, res) => {
+    const { cloneUrl, repoName } = req.body;
+    if (!cloneUrl || !repoName) {
+      return res.status(400).json({ error: 'Clone URL and Repo Name are required.' });
+    }
+
+    try {
+      const syncDir = path.join(homedir(), 'DevDropbox');
+      let targetPath = path.join(syncDir, repoName);
+      
+      // Handle naming conflicts (e.g. if folder already exists)
+      let counter = 1;
+      while (fs.existsSync(targetPath)) {
+        targetPath = path.join(syncDir, `${repoName}-${counter}`);
+        counter++;
+      }
+
+      // Clone via git
+      const simpleGit = require('simple-git');
+      fs.mkdirSync(targetPath, { recursive: true });
+      const git = simpleGit(targetPath);
+      await git.clone(cloneUrl, targetPath);
+
+      // Verify clone succeeded and register project
+      if (!appConfig.projects.includes(targetPath)) {
+        appConfig.projects.push(targetPath);
+        saveConfig(appConfig);
+        folderWatcher.watchFolder(targetPath);
+      }
+
+      const status = await getProjectStatus(targetPath);
+      res.json({ success: true, status });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Failed to clone repository.' });
     }
   });
 

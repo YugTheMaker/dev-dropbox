@@ -61,4 +61,19 @@ export class GitHubHost implements CloudHost {
       html_url: data.clone_url // git url or clone url
     };
   }
+
+  async listRepos(): Promise<{ name: string; clone_url: string; private: boolean }[]> {
+    if (!this.octokit) {
+      throw new Error('Not authenticated with GitHub.');
+    }
+    const { data } = await this.octokit.repos.listForAuthenticatedUser({
+      per_page: 100,
+      sort: 'updated'
+    });
+    return data.map(repo => ({
+      name: repo.name,
+      clone_url: repo.clone_url,
+      private: repo.private
+    }));
+  }
 }
