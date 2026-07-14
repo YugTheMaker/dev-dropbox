@@ -1,0 +1,41 @@
+{
+  "name": "dev-dropbox",
+  "version": "1.0.0",
+  "description": "Dev Dropbox makes Git invisible and feel like Dropbox for coding projects.",
+  "private": true,
+  "workspaces": [
+    "core",
+    "daemon"
+  ],
+  "scripts": {
+    "dev:frontend": "vite",
+    "build:frontend": "tsc && vite build",
+    "preview:frontend": "vite preview",
+    "dev:core": "npm run dev --workspace=core",
+    "build:core": "npm run build --workspace=core",
+    "dev:daemon": "npm run dev --workspace=daemon",
+    "build:daemon": "npm run build --workspace=daemon",
+    "predev": "(lsof -t -i:1420 | xargs kill -9 2>/dev/null || true) && (lsof -t -i:36911 | xargs kill -9 2>/dev/null || true)",
+    "dev": "concurrently -n \"core,daemon,tauri\" -c \"magenta,cyan,yellow\" \"npm run dev:core\" \"npm run dev:daemon\" \"tauri dev\"",
+    "build": "npm run build:core && npm run build:daemon && npm run build:frontend && tauri build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "lucide-react": "^0.400.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.1"
+  }
+}

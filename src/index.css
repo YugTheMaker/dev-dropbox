@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styling for a polished native app feel */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 15, 21, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(83, 87, 115, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 144, 233, 0.6);
+}
+
+/* Custom glassmorphism utilities */
+.glass {
+  background: rgba(27, 28, 40, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(83, 87, 115, 0.2);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Subtle pulse border animation for syncing */
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(14, 144, 233, 0.2);
+  }
+  50% {
+    border-color: rgba(14, 144, 233, 0.7);
+  }
+}
+
+.syncing-border {
+  animation: pulse-border 2s infinite ease-in-out;
+}
