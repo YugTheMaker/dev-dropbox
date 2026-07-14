@@ -332,16 +332,43 @@ const AppContent: React.FC = () => {
   const [setupCompleted, setSetupCompleted] = useState<boolean>(() => {
     return localStorage.getItem('dev_dropbox_setup_done') === 'true';
   });
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading && !isConnectedToDaemon) {
+      timer = setTimeout(() => {
+        setHasTimedOut(true);
+      }, 7000);
+    } else {
+      setHasTimedOut(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading, isConnectedToDaemon]);
 
   if (loading && !isConnectedToDaemon) {
     return (
       <div className="h-full bg-dark-950 flex flex-col items-center justify-center text-center p-6 text-dark-50">
-        <div className="glass rounded-3xl p-8 max-w-sm border border-dark-850 flex flex-col items-center space-y-4">
-          <RefreshCw className="w-10 h-10 text-brand-400 animate-spin" />
-          <h2 className="text-lg font-bold text-white tracking-tight">Connecting...</h2>
-          <p className="text-xs text-dark-400 leading-relaxed">
-            Establishing connection to the Dev Dropbox background service. Please ensure Node.js is installed.
-          </p>
+        <div className="glass rounded-3xl p-8 max-w-sm border border-dark-850 flex flex-col items-center space-y-4 w-full">
+          {hasTimedOut ? (
+            <>
+              <AlertCircle className="w-10 h-10 text-red-500 animate-pulse" />
+              <h2 className="text-lg font-bold text-white tracking-tight">Connection Failed</h2>
+              <p className="text-xs text-dark-400 leading-relaxed">
+                Could not connect to the background service. Please ensure <strong>Node.js (v18+)</strong> and <strong>Git</strong> are installed on your Mac, then restart this application.
+              </p>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-10 h-10 text-brand-400 animate-spin" />
+              <h2 className="text-lg font-bold text-white tracking-tight">Connecting...</h2>
+              <p className="text-xs text-dark-400 leading-relaxed">
+                Establishing connection to the Dev Dropbox background service. Please ensure Node.js is installed.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
