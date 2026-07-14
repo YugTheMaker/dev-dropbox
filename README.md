@@ -123,8 +123,13 @@ brew install git node
 ## 🤝 Contributing
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, project layout details, and instruction on adding new cloud providers.
 
-## ✍️ Author
-Dev Dropbox was created with passion by **Yug Sisodiya**, a 10-year-old developer from India who loves building tools that make coding accessible and fun for everyone.
+## ✍️ Creator & Author
+
+Dev Dropbox is designed, developed, and maintained with passion by **Yug Sisodiya** ([@YugTheMaker](https://github.com/YugTheMaker)), a 10-year-old kid and developer from India. Yug loves building creative software tools, coding projects, and making technology simpler and more accessible for everyone. 
+
+*   🖥️ **GitHub**: [@YugTheMaker](https://github.com/YugTheMaker)
+*   🚀 **Mission**: Building tools that make coding accessible and fun for kids and developers alike!
+
 
 ## 📄 License
 Dev Dropbox is open-source software licensed under the MIT License.
