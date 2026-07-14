@@ -6,6 +6,7 @@ import { AddProjectModal } from './components/AddProjectModal';
 import { ConflictResolver } from './components/ConflictResolver';
 import { DiffReviewModal } from './components/DiffReviewModal';
 import { UpdaterButton } from './components/UpdaterButton';
+import { getVersion } from '@tauri-apps/api/app';
 import { 
   Cloud, 
   Plus, 
@@ -35,6 +36,11 @@ const Dashboard: React.FC = () => {
   const [conflictedProject, setConflictedProject] = useState<Project | null>(null);
   const [diffProject, setDiffProject] = useState<Project | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
+
+  React.useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
+  }, []);
 
   // Cloud Tab States
   const [activeTab, setActiveTab] = useState<'local' | 'cloud'>('local');
@@ -100,11 +106,18 @@ const Dashboard: React.FC = () => {
       
       {/* NATIVE HEADER / BAR */}
       <header className="glass border-b border-dark-800/40 px-6 py-4 flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div className="bg-brand-500 p-1.5 rounded-xl shadow-lg shadow-brand-500/20 text-white">
             <Cloud className="w-5 h-5" />
           </div>
-          <span className="font-extrabold text-lg tracking-tight text-white">Dev Dropbox</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-extrabold text-lg tracking-tight text-white">Dev Dropbox</span>
+            {appVersion && (
+              <span className="text-[10px] bg-dark-900 border border-dark-800/60 px-2 py-0.5 rounded-full font-bold text-dark-400">
+                v{appVersion}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* CLOUD CONNECTION STATUS / ACCOUNT */}
