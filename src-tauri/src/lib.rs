@@ -20,6 +20,8 @@ pub fn run() {
     let daemon_child_clone = daemon_child.clone();
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(move |app| {
             // Setup logging plugin in debug mode
             #[cfg(debug_assertions)]

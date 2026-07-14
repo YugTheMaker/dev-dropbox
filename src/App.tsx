@@ -5,6 +5,7 @@ import { ProjectCard } from './components/ProjectCard';
 import { AddProjectModal } from './components/AddProjectModal';
 import { ConflictResolver } from './components/ConflictResolver';
 import { DiffReviewModal } from './components/DiffReviewModal';
+import { UpdaterButton } from './components/UpdaterButton';
 import { 
   Cloud, 
   Plus, 
@@ -139,10 +140,12 @@ const Dashboard: React.FC = () => {
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isConnectedToDaemon ? 'bg-green-400' : 'bg-red-400'}`}></span>
               <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnectedToDaemon ? 'bg-green-500' : 'bg-red-500'}`}></span>
             </span>
-            <span className="text-[10px] text-dark-500 font-semibold uppercase tracking-wider hidden md:inline">
+            <span className="text-[10px] text-dark-50 font-semibold uppercase tracking-wider hidden md:inline">
               {isConnectedToDaemon ? 'Daemon Connected' : 'Daemon Offline'}
             </span>
           </div>
+
+          <UpdaterButton />
         </div>
       </header>
 

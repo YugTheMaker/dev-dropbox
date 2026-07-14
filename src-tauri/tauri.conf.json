@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "dev-dropbox",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.dev-dropbox.desktop",
   "build": {
     "frontendDist": "../dist",
@@ -35,6 +35,15 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExMzhBNTdFNTI0QkQyRkEKUldUNjBrdFNmcVU0b1Vud3NIbjE5S3YvcnNGT1JtdzhxUGFTeDcyZWNaVkthYUZQeFVZaE5kNS8K",
+      "endpoints": [
+        "https://raw.githubusercontent.com/YugTheMaker/dev-dropbox/main/updater.json"
+      ]
     }
   }
 }

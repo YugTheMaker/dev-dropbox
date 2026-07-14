@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "notes": "Initial Dev Dropbox v1.0.0 Release.",
+  "pub_date": "2026-07-14T12:00:00Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "PLACEHOLDER_DARWIN_AARCH64_SIGNATURE",
+      "url": "https://github.com/YugTheMaker/dev-dropbox/releases/download/v1.0.0/dev-dropbox.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "PLACEHOLDER_DARWIN_X86_64_SIGNATURE",
+      "url": "https://github.com/YugTheMaker/dev-dropbox/releases/download/v1.0.0/dev-dropbox.app.tar.gz"
+    },
+    "linux-x86_64": {
+      "signature": "PLACEHOLDER_LINUX_X86_64_SIGNATURE",
+      "url": "https://github.com/YugTheMaker/dev-dropbox/releases/download/v1.0.0/dev-dropbox_1.0.0_amd64.deb"
+    },
+    "windows-x86_64": {
+      "signature": "PLACEHOLDER_WINDOWS_X86_64_SIGNATURE",
+      "url": "https://github.com/YugTheMaker/dev-dropbox/releases/download/v1.0.0/dev-dropbox_1.0.0_x64-setup.nsis.zip"
+    }
+  }
+}
