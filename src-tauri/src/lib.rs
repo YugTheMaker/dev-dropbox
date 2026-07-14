@@ -50,8 +50,25 @@ pub fn run() {
 
             println!("Spawning background daemon from path: {:?}", daemon_path);
 
+            // Resolve node path: try default "node", then check common absolute paths on macOS
+            let mut node_bin = "node".to_string();
+            #[cfg(target_os = "macos")]
+            {
+                let common_paths = vec![
+                    "/opt/homebrew/bin/node",
+                    "/usr/local/bin/node",
+                    "/usr/bin/node",
+                ];
+                for path in common_paths {
+                    if std::path::Path::new(path).exists() {
+                        node_bin = path.to_string();
+                        break;
+                    }
+                }
+            }
+
             // 2. Spawn the Node.js process
-            let mut cmd = Command::new("node");
+            let mut cmd = Command::new(node_bin);
             cmd.arg(daemon_path);
             
             // Set Node environment if needed
