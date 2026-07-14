@@ -4,7 +4,7 @@
   "description": "Background service daemon for Dev Dropbox",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && esbuild src/index.ts --bundle --platform=node --target=node18 --external:fsevents --outfile=dist/index.js",
     "dev": "tsc -w",
     "start": "node dist/index.js"
   },
