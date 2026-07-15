@@ -109,6 +109,13 @@ brew install git node
     ```
     The compiled macOS application bundle (`.app` or `.dmg`) will be placed in `src-tauri/target/release/bundle/`.
 
+    > [!TIP]
+    > **macOS Gatekeeper Warning**: Locally compiled bundles that are not officially code-signed will show a "damaged and can't be opened" alert on macOS. You can bypass this flag on your local machine by running:
+    > ```bash
+    > xattr -cr src-tauri/target/release/bundle/macos/dev-dropbox.app
+    > ```
+    > If you are publishing/sharing the app with others, make sure to configure GitHub Actions secrets for macOS Code Signing and Notarization.
+
 ---
 
 ## 🛠️ Tech Stack

@@ -39,6 +39,8 @@ interface SyncContextType {
   getCloudRepos: () => Promise<{ name: string; clone_url: string; private: boolean }[]>;
   cloneCloudRepo: (cloneUrl: string, repoName: string) => Promise<void>;
   openProjectInIde: (folderPath: string, ide: 'vscode' | 'antigravity') => Promise<void>;
+  selectFile: () => Promise<string | null>;
+  createAndImportRepo: (repoName: string, isPrivate: boolean, importType: 'none' | 'file' | 'folder', importPath?: string) => Promise<any>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -355,6 +357,37 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const selectFile = async () => {
+    const res = await fetch(`${DAEMON_URL}/api/dialog/select-file`, {
+      method: 'POST'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.path;
+    }
+    return null;
+  };
+
+  const createAndImportRepo = async (
+    repoName: string,
+    isPrivate: boolean,
+    importType: 'none' | 'file' | 'folder',
+    importPath?: string
+  ) => {
+    const res = await fetch(`${DAEMON_URL}/api/projects/create-and-import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repoName, isPrivate, importType, importPath })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create and import repository.');
+    }
+    const data = await res.json();
+    await refreshProjects();
+    return data;
+  };
+
   return (
     <SyncContext.Provider value={{
       projects,
@@ -375,7 +408,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getFileDiff,
       getCloudRepos,
       cloneCloudRepo,
-      openProjectInIde
+      openProjectInIde,
+      selectFile,
+      createAndImportRepo
     }}>
       {children}
     </SyncContext.Provider>

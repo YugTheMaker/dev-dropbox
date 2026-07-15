@@ -140,7 +140,15 @@ export async function validateProjectFolder(folderPath: string): Promise<Validat
               folderName === 'env' ||
               folderName === '.next' ||
               folderName === '.nuxt' ||
-              folderName === '.cache'
+              folderName === '.cache' ||
+              folderName === 'library' ||
+              folderName === 'temp' ||
+              folderName === 'logs' ||
+              folderName === 'usersettings' ||
+              folderName === 'builds' ||
+              folderName === 'build_output' ||
+              folderName.endsWith('_data') ||
+              folderName === 'monobleedingedge'
             ) {
               continue; // Skip scanning heavy dependency/build directories
             }
@@ -161,10 +169,10 @@ export async function validateProjectFolder(folderPath: string): Promise<Validat
     result.totalSizeMb = parseFloat((totalSizeBytes / (1024 * 1024)).toFixed(2));
     result.hasNestedRepos = hasNested;
 
-    // Hard block folders exceeding 50MB in size
-    if (result.totalSizeMb > 50) {
+    // Hard block folders exceeding 5000MB in size
+    if (result.totalSizeMb > 5000) {
       result.isValid = false;
-      result.error = `Folder size (${result.totalSizeMb} MB) exceeds the maximum limit of 50MB. Please ensure heavy dependency or build folders (like node_modules or target) are ignored or choose a smaller project.`;
+      result.error = `Folder size (${result.totalSizeMb} MB) exceeds the maximum limit of 5000MB. Please ensure heavy dependency or build folders (like node_modules or target) are ignored or choose a smaller project.`;
       return result;
     }
 

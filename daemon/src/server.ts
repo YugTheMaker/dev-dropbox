@@ -102,6 +102,28 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
     }
   });
 
+  // Native file browser dialog launcher route
+  app.post('/api/dialog/select-file', (req, res) => {
+    if (platform() === 'darwin') {
+      const script = `osascript -e 'POSIX path of (choose file with prompt "Select File to Import")'`;
+      exec(script, (err, stdout) => {
+        if (err) return res.json({ path: null }); // User cancelled
+        res.json({ path: stdout.trim() });
+      });
+    } else if (platform() === 'win32') {
+      const script = `powershell -Command "& { Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $f.FileName } }"`;
+      exec(script, (err, stdout) => {
+        if (err) return res.json({ path: null });
+        res.json({ path: stdout.trim() });
+      });
+    } else {
+      exec('zenity --file-selection', (err, stdout) => {
+        if (err) return res.json({ path: null });
+        res.json({ path: stdout.trim() });
+      });
+    }
+  });
+
   const server = createServer(app);
   wsServer = new WebSocketServer({ server });
 
@@ -315,8 +337,13 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
       // 1. Create remote repo on GitHub
       const { html_url } = await githubHost.createRepo(repoName, !!isPrivate);
       
+      let authenticatedUrl = html_url;
+      if (appConfig.githubToken) {
+        authenticatedUrl = html_url.replace('https://github.com/', `https://x-access-token:${appConfig.githubToken}@github.com/`);
+      }
+
       // 2. Publish/push local project to origin
-      await publishProject(folderPath, html_url);
+      await publishProject(folderPath, authenticatedUrl);
       
       const status = await getProjectStatus(folderPath);
       res.json({ success: true, status });
@@ -411,7 +438,12 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
       const simpleGit = require('simple-git');
       fs.mkdirSync(targetPath, { recursive: true });
       const git = simpleGit(targetPath);
-      await git.clone(cloneUrl, targetPath);
+
+      let authenticatedUrl = cloneUrl;
+      if (appConfig.githubToken) {
+        authenticatedUrl = cloneUrl.replace('https://github.com/', `https://x-access-token:${appConfig.githubToken}@github.com/`);
+      }
+      await git.clone(authenticatedUrl, targetPath);
 
       // Verify clone succeeded and register project
       if (!appConfig.projects.includes(targetPath)) {
@@ -424,6 +456,130 @@ export function setupServer(): { server: HTTPServer; app: express.Application } 
       res.json({ success: true, status });
     } catch (e: any) {
       res.status(500).json({ error: e.message || 'Failed to clone repository.' });
+    }
+  });
+
+  // Create GitHub Repository and Import Files/Folders
+  app.post('/api/projects/create-and-import', async (req, res) => {
+    const { repoName, isPrivate, importType, importPath } = req.body;
+    if (!repoName || !importType) {
+      return res.status(400).json({ error: 'Repository name and import type are required.' });
+    }
+
+    if (!githubHost.isAuthenticated()) {
+      return res.status(401).json({ error: 'GitHub is not authenticated.' });
+    }
+
+    try {
+      // 1. Create remote repository on GitHub
+      const { html_url } = await githubHost.createRepo(repoName, !!isPrivate);
+
+      let targetPath = '';
+
+      if (importType === 'folder') {
+        if (!importPath) {
+          return res.status(400).json({ error: 'Folder path is required for folder import.' });
+        }
+        targetPath = require('path').resolve(importPath);
+
+        // Validate folder
+        const validation = await validateProjectFolder(targetPath);
+        if (!validation.isValid) {
+          return res.status(400).json({ error: validation.error });
+        }
+
+        // Initialize Git if not a repository
+        const isRepo = await isGitRepository(targetPath);
+        if (!isRepo) {
+          await initializeGitRepository(targetPath);
+        }
+
+        // Suggest gitignore if missing
+        if (!validation.hasGitignore && validation.suggestedGitignore) {
+          writeSuggestedGitignore(targetPath, validation.suggestedGitignore);
+        }
+
+        let authenticatedUrl = html_url;
+        if (appConfig.githubToken) {
+          authenticatedUrl = html_url.replace('https://github.com/', `https://x-access-token:${appConfig.githubToken}@github.com/`);
+        }
+
+        // Publish to GitHub
+        await publishProject(targetPath, authenticatedUrl);
+
+        // Register project
+        if (!appConfig.projects.includes(targetPath)) {
+          appConfig.projects.push(targetPath);
+          saveConfig(appConfig);
+          folderWatcher.watchFolder(targetPath);
+        }
+
+      } else if (importType === 'file') {
+        if (!importPath) {
+          return res.status(400).json({ error: 'File path is required for file import.' });
+        }
+        const sourceFilePath = require('path').resolve(importPath);
+
+        if (!fs.existsSync(sourceFilePath) || !fs.statSync(sourceFilePath).isFile()) {
+          return res.status(400).json({ error: 'Selected path is not a valid file.' });
+        }
+
+        const syncDir = path.join(homedir(), 'DevDropbox');
+        if (!fs.existsSync(syncDir)) {
+          fs.mkdirSync(syncDir, { recursive: true });
+        }
+
+        let folderName = repoName.toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+        let destFolder = path.join(syncDir, folderName);
+        let counter = 1;
+        while (fs.existsSync(destFolder)) {
+          destFolder = path.join(syncDir, `${folderName}-${counter}`);
+          counter++;
+        }
+
+        fs.mkdirSync(destFolder, { recursive: true });
+
+        // Copy file
+        const fileName = path.basename(sourceFilePath);
+        const destFilePath = path.join(destFolder, fileName);
+        fs.copyFileSync(sourceFilePath, destFilePath);
+
+        // Write custom README and suggested gitignore
+        fs.writeFileSync(
+          path.join(destFolder, 'README.md'),
+          `# ${repoName}\n\nImported file: \`${fileName}\`\n\nCreated with Dev Dropbox.`,
+          'utf8'
+        );
+
+        // Write basic gitignore
+        const defaultGitignore = `# System Files\n.DS_Store\nThumbs.db\ndesktop.ini\n`;
+        fs.writeFileSync(path.join(destFolder, '.gitignore'), defaultGitignore, 'utf8');
+
+        // Initialize Git
+        await initializeGitRepository(destFolder);
+
+        let authenticatedUrl = html_url;
+        if (appConfig.githubToken) {
+          authenticatedUrl = html_url.replace('https://github.com/', `https://x-access-token:${appConfig.githubToken}@github.com/`);
+        }
+
+        // Publish to GitHub
+        await publishProject(destFolder, authenticatedUrl);
+
+        targetPath = destFolder;
+
+        // Register project
+        if (!appConfig.projects.includes(targetPath)) {
+          appConfig.projects.push(targetPath);
+          saveConfig(appConfig);
+          folderWatcher.watchFolder(targetPath);
+        }
+      }
+
+      const status = targetPath ? await getProjectStatus(targetPath) : null;
+      res.json({ success: true, cloneUrl: html_url, status });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Failed to create repository and import.' });
     }
   });
 

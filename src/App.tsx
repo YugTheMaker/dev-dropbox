@@ -3,6 +3,7 @@ import { SyncProvider, useSync, Project } from './context/SyncContext';
 import { SetupWizard } from './components/SetupWizard';
 import { ProjectCard } from './components/ProjectCard';
 import { AddProjectModal } from './components/AddProjectModal';
+import { CreateRepoModal } from './components/CreateRepoModal';
 import { ConflictResolver } from './components/ConflictResolver';
 import { DiffReviewModal } from './components/DiffReviewModal';
 import { UpdaterButton } from './components/UpdaterButton';
@@ -33,6 +34,7 @@ const Dashboard: React.FC = () => {
   } = useSync();
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCreateRepoModal, setShowCreateRepoModal] = useState(false);
   const [conflictedProject, setConflictedProject] = useState<Project | null>(null);
   const [diffProject, setDiffProject] = useState<Project | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
@@ -158,6 +160,21 @@ const Dashboard: React.FC = () => {
             </span>
           </div>
 
+          <button
+            onClick={() => {
+              if (!isAuthenticated) {
+                alert('Please sign in to GitHub to create repositories.');
+              } else {
+                setShowCreateRepoModal(true);
+              }
+            }}
+            className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg hover:shadow-brand-500/10 transition flex items-center gap-1.5"
+            title="Create a new repository on GitHub"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Repo</span>
+          </button>
+
           <UpdaterButton />
         </div>
       </header>
@@ -205,6 +222,16 @@ const Dashboard: React.FC = () => {
             >
               <Plus className="w-4 h-4" />
               Add Folder
+            </button>
+          )}
+
+          {activeTab === 'cloud' && (
+            <button 
+              onClick={() => setShowCreateRepoModal(true)}
+              className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg hover:shadow-brand-500/10 transition flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              New Repository
             </button>
           )}
         </div>
@@ -320,6 +347,16 @@ const Dashboard: React.FC = () => {
       {/* MODALS */}
       {showAddModal && (
         <AddProjectModal onClose={() => setShowAddModal(false)} />
+      )}
+
+      {showCreateRepoModal && (
+        <CreateRepoModal 
+          onClose={() => setShowCreateRepoModal(false)} 
+          onSuccess={() => {
+            setShowCreateRepoModal(false);
+            loadCloudRepos();
+          }}
+        />
       )}
 
       {conflictedProject && (
